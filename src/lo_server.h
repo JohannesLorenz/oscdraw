@@ -17,35 +17,37 @@
 /* Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110, USA  */
 /*************************************************************************/
 
-#include <cstdlib>
-#include <unistd.h>
-#include <chrono>
-#include <iostream>
-#include "lo_server.h"
+#ifndef LO_SERVER_H
+#define LO_SERVER_H
+
+#include <lo/lo_types.h>
 
 #include "image.h"
 
-constexpr float sleep_time_us = 1000000.0f / 60.0f; // 60 fps
+namespace oscdraw {
 
-int main()
+class lo_server_t
 {
-	oscdraw::image_t img;
-	oscdraw::image_server_t srv(&img);
+protected:
+	lo_server srv;
+private:
+	void handle_events(); // TODO: unused?
+public:
+	lo_server_t();
+	~lo_server_t();
+	void listen();
+};
 
-	auto start = std::chrono::system_clock::now();
+class image_server_t : public lo_server_t
+{
+	bool _exit = false;
+	image_t* img;
+public:
+	void apply_msg(const char* buffer);
+	image_server_t(image_t* img);
+	bool exit() const { return _exit; }
+};
 
-	for(int counter = 1; ! srv.exit(); ++counter)
-	{
-		srv.listen();
-
-		auto duration = std::chrono::duration_cast<
-			std::chrono::microseconds>(
-			std::chrono::system_clock::now() - start);
-
-		usleep(sleep_time_us * counter - duration.count());
-	}
-
-	img.grid.save_png("result.png");
-
-	return EXIT_SUCCESS;
 }
+
+#endif // LO_SERVER_H

@@ -17,35 +17,36 @@
 /* Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110, USA  */
 /*************************************************************************/
 
-#include <cstdlib>
-#include <unistd.h>
-#include <chrono>
 #include <iostream>
-#include "lo_server.h"
+#include <fstream>
 
-#include "image.h"
+#include <Magick++.h>
+#include <magick/methods.h>
 
-constexpr float sleep_time_us = 1000000.0f / 60.0f; // 60 fps
+#include "grid.h"
 
-int main()
+namespace oscdraw {
+
+void grid_t::save_png(const char *filename)
 {
-	oscdraw::image_t img;
-	oscdraw::image_server_t srv(&img);
+	try {
+		const std::string format = "ARGB";
+		std::ofstream ofs(filename);
 
-	auto start = std::chrono::system_clock::now();
+		Magick::Blob blob2;
+		Magick::Image img2(w, h, format,
+			Magick::CharPixel, values.data());
+		// needed, otherwise we write "format-less":
+		img2.magick("PNG");
+		img2.write(&blob2);
 
-	for(int counter = 1; ! srv.exit(); ++counter)
-	{
-		srv.listen();
-
-		auto duration = std::chrono::duration_cast<
-			std::chrono::microseconds>(
-			std::chrono::system_clock::now() - start);
-
-		usleep(sleep_time_us * counter - duration.count());
+		ofs.write(reinterpret_cast<const char*>(blob2.data()), blob2.length());
 	}
-
-	img.grid.save_png("result.png");
-
-	return EXIT_SUCCESS;
+	catch ( Magick::Exception & error) {
+		std::cerr << "Caught Magick++ exception: "
+			<< error.what() << std::endl;
+	}
 }
+
+}
+

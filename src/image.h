@@ -17,35 +17,19 @@
 /* Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110, USA  */
 /*************************************************************************/
 
-#include <cstdlib>
-#include <unistd.h>
-#include <chrono>
-#include <iostream>
-#include "lo_server.h"
+#ifndef IMAGE_H
+#define IMAGE_H
 
-#include "image.h"
+#include "grid.h"
 
-constexpr float sleep_time_us = 1000000.0f / 60.0f; // 60 fps
+namespace oscdraw {
 
-int main()
+struct image_t
 {
-	oscdraw::image_t img;
-	oscdraw::image_server_t srv(&img);
+	grid_t grid;
+	image_t() : grid(1024, 1024) {}
+};
 
-	auto start = std::chrono::system_clock::now();
-
-	for(int counter = 1; ! srv.exit(); ++counter)
-	{
-		srv.listen();
-
-		auto duration = std::chrono::duration_cast<
-			std::chrono::microseconds>(
-			std::chrono::system_clock::now() - start);
-
-		usleep(sleep_time_us * counter - duration.count());
-	}
-
-	img.grid.save_png("result.png");
-
-	return EXIT_SUCCESS;
 }
+
+#endif // IMAGE_H

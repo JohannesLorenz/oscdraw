@@ -17,35 +17,52 @@
 /* Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110, USA  */
 /*************************************************************************/
 
-#include <cstdlib>
-#include <unistd.h>
-#include <chrono>
-#include <iostream>
-#include "lo_server.h"
+#ifndef GRID_H
+#define GRID_H
 
-#include "image.h"
+#include <vector>
+#include <cstdint>
 
-constexpr float sleep_time_us = 1000000.0f / 60.0f; // 60 fps
+namespace oscdraw {
 
-int main()
+struct point_t
 {
-	oscdraw::image_t img;
-	oscdraw::image_server_t srv(&img);
+	int x, y;
+	point_t(int x, int y) : x(x), y(y) {}
+};
 
-	auto start = std::chrono::system_clock::now();
+using color_t = uint8_t;
+using raw_t = uint32_t;
 
-	for(int counter = 1; ! srv.exit(); ++counter)
-	{
-		srv.listen();
+union argb_t
+{
+	color_t _array[4];
+	raw_t _raw;
 
-		auto duration = std::chrono::duration_cast<
-			std::chrono::microseconds>(
-			std::chrono::system_clock::now() - start);
+	constexpr argb_t(color_t a, color_t r, color_t g, color_t b) :
+		_array { a, r, g, b} {}
+	constexpr argb_t(color_t r, color_t g, color_t b) :
+		argb_t(255, r, g, b) {}
 
-		usleep(sleep_time_us * counter - duration.count());
+	constexpr static argb_t white() { return argb_t(255, 255, 255); }
+
+	raw_t raw() const { return _raw; }
+};
+
+struct grid_t
+{
+	int w, h;
+	std::vector<raw_t> values;
+public:
+	grid_t(int w, int h) : w(w), h(h), values(w * h, argb_t::white().raw()) {}
+	raw_t& operator[](const point_t& p) { return values[p.y * w + p.x]; }
+	void flood(argb_t argb) {
+		std::fill(values.begin(), values.end(), argb.raw());
 	}
 
-	img.grid.save_png("result.png");
+	void save_png(const char* filename);
+};
 
-	return EXIT_SUCCESS;
 }
+
+#endif // GRID_H
